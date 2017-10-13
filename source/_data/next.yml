@@ -1,8 +1,0 @@
-theme: next
-scheme: Muse
-
-menu:
-  home: /
-  archives: /archives
-  tags: /tags
-  about: /about

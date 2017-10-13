@@ -44,8 +44,7 @@ theme: next
 scheme: Mist   ## 参考 hexo-theme-next 的文档
 ```
 
-
-## 创建 tags 页面
+### 为 next theme 创建 tags 页面
 执行: 
 ```sh
 cnpm install hexo-generator-tag --save
