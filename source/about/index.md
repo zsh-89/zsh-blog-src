@@ -1,6 +1,8 @@
 ---
-title: about
+title: About Me
 date: 2017-10-12 20:59:15
 ---
 
-<p> Email: zsh_89 "at" outlook.com </p>
++ Email: zsh_89 "at" outlook.com
++ github: http://www.github.com/zsh-89
+
