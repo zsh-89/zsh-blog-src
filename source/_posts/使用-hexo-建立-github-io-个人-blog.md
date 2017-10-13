@@ -31,6 +31,8 @@ cnpm install
 
 
 ## 安装配置 next theme
+(更新: 这个 theme 并不稳定, 已弃坑. 用回 hexo 默认的 theme 了)
+
 执行:
 ```sh
 git clone https://github.com/iissnan/hexo-theme-next themes/next
