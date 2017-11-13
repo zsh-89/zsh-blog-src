@@ -4,6 +4,7 @@ date: 2017-10-13 12:19:24
 tags: 
   - kerberos
   - pre-stash
+  - security
 ---
 
 ## pre-stash; krb5-prestash

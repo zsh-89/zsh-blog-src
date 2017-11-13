@@ -5,6 +5,7 @@ tags:
   - kerberos
   - algorithm
   - authentication
+  - security
 ---
 
 ## Kerberos 简介

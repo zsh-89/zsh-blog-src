@@ -3,6 +3,8 @@ title: Windows 的 memory-mapped file 简介
 date: 2017-11-13 17:59:55
 tags:
   - memory-mapped file
+  - memory management
+  - Windows
 ---
 
 
