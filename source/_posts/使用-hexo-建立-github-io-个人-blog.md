@@ -19,6 +19,11 @@ tags:
 之后的命令中, 我都使用了 `cnpm`; 如果是墙外的朋友直接用 `npm` 即可. 
 
 
+## Reference
++ hexo 官网: https://hexo.io
++ Next 主题官方文档: http://theme-next.iissnan.com
+
+
 ## hexo 安装; 创建 blog project
 ```sh
 sudo cnpm install hexo-cli -g
@@ -31,8 +36,6 @@ cnpm install
 
 
 ## 安装配置 next theme
-(更新: 这个 theme 并不稳定, 已弃坑. 用回 hexo 默认的 theme 了)
-
 执行:
 ```sh
 git clone https://github.com/iissnan/hexo-theme-next themes/next
@@ -41,8 +44,16 @@ git clone https://github.com/iissnan/hexo-theme-next themes/next
 在 `_config.yml` 中配置:
 ```yml
 theme: next
-scheme: Mist   ## 参考 hexo-theme-next 的文档
 ```
+
+在 `themes/next/_config.yml` 中配置:
+```yml
+## 选取 next 主题中的 Gemini 风格; 此步可以跳过
+scheme: Gemini   ## 在编辑器搜索相关字眼, 并且把原来的配置注释掉
+```
+
+注意, 不要混淆 next 主题的配置文件 (`themes/next/_config.yml`) 和 hexo 的配置文件 (直接就在 my-blog 目录下 的`_config.yml`).
+更多关于 next 主题参考 [Next 主题官方文档]( http://theme-next.iissnan.com ).
 
 ### 为 next theme 创建 tags 页面
 执行: 
@@ -58,6 +69,17 @@ title: Tags
 date: 2016-12-22 12:39:04
 type: "tags"
 ---
+```
+
+配置 blog 的页面, 在  `themes/next/_config.yml` menu 配置项就增加 `tags` 页:
+```yml
+menu:
+  home: /
+  archives: /archives
+  tags: /tags
+  ## about: /about  
+    ## hexo 也支持 about 页面; 创建方式和创建 tags 页面相同; 
+    ## 不过 about 页面对应的 index.md 里面可以写正文
 ```
 
 
@@ -90,8 +112,8 @@ hexo deploy --generate
 ```
 
 
-## Next?
+## 结语
 + 推荐将 blog 的项目作为一个 git repo 管理, 参考: https://github.com/zsh-89/zsh-blog-src
-+ 考虑用 [git submodule](http://zsh-89.github.io/2017/08/10/git-submodule-%E9%85%8D%E7%BD%AE%E6%9F%A5%E7%9C%8B-submodule-%E7%9A%84%E5%85%B7%E4%BD%93%E7%89%88%E6%9C%AC/) 管理 blog 项目和第三方 theme repo 之间的关系
++ 由于需要修改 theme/next 下的内容才能对 next 主题进行配置, 不推荐将 next theme 作为 git submodule 进行管理
 
 
