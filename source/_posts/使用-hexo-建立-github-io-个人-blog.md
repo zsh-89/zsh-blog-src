@@ -3,7 +3,7 @@ title: 使用 hexo 建立 github.io 个人 blog
 date: 2017-08-14 16:28:01
 tags: 
   - hexo
-  - github.io 个人 blog
+  - github.io blog
 ---
 
 
