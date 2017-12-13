@@ -4,7 +4,8 @@ date: 2017-12-13 19:28:15
 tags: 
   - Memory Model
   - Java Memory Model
-  - volatile
+  - multithreading 
+  - volatile  
   - final
   - synchronized
   - happens-before
