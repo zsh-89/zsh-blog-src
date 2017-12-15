@@ -133,6 +133,10 @@ If one action happens-before another, then the first is visible to and ordered b
 这是不经济的; 对于非线程间共享的值, 或者 immutable 的值, 完全没有必要.
 过于严格的规则相当于禁止了编译器和硬件的优化, 降低性能.
 
+"happens-before 规则" 实际上是一个描述 "约束" 的工具. 
+Java 标准用它来精准地定义 Java MM 的种种行为, 
+用它来精准地定义各种同步工具如 `volatile`, `synchronized` 的性质.
+
 ### 线程内 as-if-serial 语义 (within-thread as-if-serial semantic)
 同义词:
 + within-thread as-if-serial semantic (as-if-serial 语义)
@@ -141,6 +145,7 @@ If one action happens-before another, then the first is visible to and ordered b
 Java 语言标准保证: 在任何时候, 在一同线程内部, 一定满足 as-if-serial 语义, 即: 
 Java 编译器, JVM, 硬件可以使用一切优化手段, 包括且不限于调整语句执行顺序, 只要满足: 
 在线程内, 程序的执行效果等价于顺序执行每一个语句的结果.
+as-if-serial 可以认为是 Java MM 提供的 "低保".
 
 > The compiler, runtime, and hardware are supposed to conspire to create the illusion of as-if-serial semantics, which means
 > that in a single-threaded program, the program should not be able to observe the effects of reorderings.
