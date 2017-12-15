@@ -291,13 +291,12 @@ volatile 的性质:
 + 构造函数 "没有逸出" 的充要条件:  do not write a reference to the object being
 constructed in a place where another thread can see it before the object's constructor
 is finished. (来自 java 语言标准, jls9)
-(更多可参考 "可见性, 发布和逸出, 发布对象引用.md")
 + "正确地/正确性" = "up to date as of the end of the object's constructor", not "the latest value available". 
 
 (我认为 `final` 的效果也可以用类似定义 `volatile` 一样的方式定义, 
- 都是令 "inter-thread 间的 visibility 和 as-if-serial" 做到了原本 
- "intra-thread 的 visibility 和 as-if-serial"  的效果, 符合程序员的期望)
-
+ 都是令 "inter-thread 的 visibility 和顺序性" 做到了原本 
+ "intra-thread 才拥有的 visibility + as-if-serial" 的效果, 符合程序员的期望)
+ 
 ### 内部锁, intrinsic/monitor lock, `synchronized`
 intrinsic lock === monitor lock, 又被简称为 monitor. 
 `synchronized` 用到的机制就是 monitor.
@@ -337,21 +336,23 @@ C# 是通过详细地定义 release 和 acquire 操作而不是通过 HB rule �
 ### `volatile` 和 `synchronized` 的经典案例: "Double-Checked Locking is Broken" 
 ```java
 class Foo { 
-  private Helper helper = null;
-  public Helper getHelper() {
-    if (helper == null) 
-      synchronized(this) {
-        if (helper == null) 
-          helper = new Helper();
-      }    
-    return helper;
+    private Helper helper = null;
+
+    public Helper getHelper() {
+        if (helper == null) { 
+            synchronized(this) {
+                if (helper == null) 
+                    helper = new Helper();
+            }
+        }    
+        return helper;
     }
-  // other functions and members...
+    // other functions and members...
 }
 ```
 
 如果 `helper` 没有 `volatile` 修饰, **这段代码是错误的**. 因为读取到 helper 不为空时, 
-构造函数 Helper() 未必执行完了, Java MM 不存在这样的保证.
+**构造函数 Helper() 未必执行完**, 其他线程有可能读到脏状态的对象.
 除了添加 `volatile`, 也可以把整个方法变为 `synchronized`. 
 
 详细讨论见 [The "Double-Checked Locking is Broken" Declaration]( http://www.cs.umd.edu/~pugh/java/memoryModel/DoubleCheckedLocking.html );
