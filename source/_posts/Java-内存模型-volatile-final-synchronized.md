@@ -324,6 +324,7 @@ synchronized block: 被 `synchronized` 保护的代码区域.
   acquired the lock and released the lock. As long as a thread owns an intrinsic lock, 
   no other thread can acquire the same lock. 
   The other thread will **block** when it attempts to acquire the lock.
+  (互斥 (mutex) 能力)
 + 参考 'Java 内存模型保证成立的 "HB 关系"' 部分的第一条和第二条; 由于存在这样的 HB 关系, 
   Java MM 实际上保证了: 
   Any memory operations which were visible to a thread before exiting a synchronized block are visible to any thread after it enters a synchronized block protected by the **same monitor**; 
@@ -361,6 +362,24 @@ class Foo {
 **构造函数 Helper() 未必执行完**, 其他线程有可能读到脏状态的对象.
 除了添加 `volatile`, 也可以把整个方法变为 `synchronized`. 
 
+这段代码的意图是让 helper 对象对外可见, 这被称为 "发布问题"; 
+由于代码没有使用正确的同步机制发布 helper, 这个现象被成为 "不正确的发布".
+(更多见 "可见性, 发布和逸出" 笔记)
+
 详细讨论见 [The "Double-Checked Locking is Broken" Declaration]( http://www.cs.umd.edu/~pugh/java/memoryModel/DoubleCheckedLocking.html );
 里面更详细地讨论了种种看似聪明但不 work 的 "fix 方案".
+
+
+## 什么同步都不做? 最低安全性 (out-of-thin-air safety) 
+当线程在没有同步机制的情况下读取变量, 可能会得到一个 '失效的' (stale) 值; 
+但是这个值一定是 **被之前某个线程设置的值**, 而不是一个随机的值.
+一般变量的读取和写入都是 '原子操作', 所以有 '最低安全性';
+非 `volatile` 类型的 64bit 变量的读写 **未必有 '最低安全性'**, 
+因为 java 内存模型允许它被拆分为两个 32bit 的操作.
+
+Java 的 "最低安全性" 事实上已经是是相当强的保证了; C/C++ 没有类似的保证, 
+读取到 undefined 的值完全是正常的, 符合语言标准的.
+
+
+
 
