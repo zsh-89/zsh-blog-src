@@ -97,30 +97,39 @@ If one action happens-before another, then the first is visible to and ordered b
 
 为什么需要 HB 规则?
 ```java
-// 线程1
-{
-    this.important_data = 15;
-    this.flag = true;
-}
-// 线程2
-{
-    while (this.flag == false) {
-        Thread.yield();
+public class Main {
+    private static boolean flag = false;
+    private static int important_data = 0;
+
+    // 线程2
+    private static class RunnerThread extends Thread {
+        public void run() {
+            while (flag == false) {
+                Thread.yield();
+            }
+            System.out.println("important_data is: " + important_data);
+        }
     }
-    System.out.println(this.important_data);
+
+    // 线程1
+    public static void main(String[] args) {
+        (new RunnerThread()).start();
+        important_data = 15;
+        flag = true;
+    }
 }
 ```
 只看代码, 我们可能期望:
-1. 在时序上, "this.important_data 的赋值" (记为 A) 先于 "this.flag 的赋值" (记为 B) 先于 
-   "线程2输出 this.important_data" (记为 C)
-2. 线程2在输出 this.important_data 时, 可以看到其最新的值, 即 15
+1. 在时序上, "important_data 的赋值" (记为 A) 先于 "flag 的赋值" (记为 B) 先于 
+   "线程2输出 important_data" (记为 C)
+2. 线程2在输出 important_data 时, 可以看到其最新的值, 即 15
 
 不过, 由于编译器优化和CPU硬件指令优化, A B 的时序是不确定的;
 编译器的 "指令重拍" 可能令 B 在时序上先于 A 发生. 
 所以, 第一点期望未必成立.
 
 假设事件发生的时序确实是 A -> B -> C, 线程2输出的也未必是 15, 因为 A 的结果未必对 C 可见
-(C 可能跑在另一个 CPU 核上, 其 cache 中 this.important_data 的值未必有及时得到更新).
+(C 可能跑在另一个 CPU 核上, 其 cache 中 important_data 的值未必有及时得到更新).
 所以, 第二点期望未必成立.
 
 显然, 在多线程编程中, 我们有些时候需要足够强的工具, 
@@ -218,8 +227,8 @@ Java 的做法是, 提供足够的同步工具, 让程序员可以为特定重�
 
 回头看 HB 部分的例子, 
 我们总可以认为, 在线程1中, 语句是顺序执行的;
-`this.flag = true` 被执行时, 前一个语句已经被执行了, 而且能看到前一个语句执行的结果.
-但是, 由于 `this.flag` 没有使用任何同步机制, 所以线程2并不能看到线程1所看到的, 
+`flag = true` 被执行时, 前一个语句已经被执行了, 而且能看到前一个语句执行的结果.
+但是, 由于 `flag` 没有使用任何同步机制, 所以线程2并不能看到线程1所看到的, 
 "能否看到, 能看到什么, 以什么顺序看到" 几乎都是未定义的 
 (给编译器和硬件留下了充分的自由度, 进行指令优化).
 
@@ -233,11 +242,11 @@ Java 的做法是, 提供足够的同步工具, 让程序员可以为特定重�
 >
 > --- By JSR-133 FAQ
 
-在标准中描述了更多其他 Java MM 保证一定成了的 "HB 关系", 但是 FAQ 写的这 5 条是重点.
+在标准中描述了更多其他 Java MM 保证一定成了的 "HB 关系", 但是 FAQ 写的这 5 条和后面列出的 8 条是重点.
 
 注意 "comes later", "subsequent" 这些本身就在描述先后关系的词汇.
 例如 "An unlock on a monitor happens before every subsequent lock on that same monitor"; 
-如果没有 HB, 可能出现以下行为:
+如果没有 HB 约束, 可能出现以下行为:
 + 源代码角度看, 更前面的 unlock 的执行时间可能在更后面的 lock 执行时间之前
   (重排序, 乱序执行等可以造成这个效果)  
 + 即使某个 unlock 的执行时间先于后面的 lock, 这个 unlock 执行结果未必对后面那个 lock 可见
@@ -248,9 +257,28 @@ Java 的做法是, 提供足够的同步工具, 让程序员可以为特定重�
 then hb(x, y)."
   注意: 措辞上 "in a thread"/"of the same thread" 表示描述的是线程内部的效果; 
   还有, program order 未必是唯一的, program order 只要 "**reflects** the order in which these actions 
-  would be performed according to the **intra-thread** semantics." 就可以了
+  would be performed according to the **intra-thread** semantics." 就可以了;
+  program order 是灵活的, 允许重排序的.
+  这一条在 <Java Concurrency in Practice> 中被成为 "Program order rule".
 + 关于 2-3: 描述了 `lock/unlock` 和 `volatile` 的一部分性质; 它们完整的性质将在下文描述
 + 关于 4-5: 符合程序员对于线程行为的基本期望 
+
+> The rules for happens‐before are:
+> 1. Program order rule. Each action in a thread happens‐before every action in that thread that comes >    later in the program order.
+> 2. Monitor lock rule. An unlock on a monitor lock happens‐before every subsequent lock on that same >    monitor lock. 
+>    (Locks and unlocks on explicit Lock objects have the same memory semantics as intrinsic locks.)
+> 3. Volatile variable rule. A write to a volatile field happens‐before every subsequent read of that >    same field.
+>    (Reads and writes of atomic variables have the same memory semantics as volatile variables.)
+> 4. Thread start rule. A call to Thread.start on a thread happens‐before every action in the started >    thread.
+> 5. Thread termination rule. Any action in a thread happens‐before any other thread detects that 
+>    thread has terminated, either by successfully return from `Thread.join` or by `Thread.isAlive` returning false.
+> 6. Interruption rule. A thread calling interrupt on another thread happens‐before the interrupted > thread detects the
+>    interrupt (either by having InterruptedException thrown, or invoking isInterrupted or interrupted).
+> 7. Finalizer rule. The end of a constructor for an object happens‐before the start of the finalizer for that object.
+> 8. Transitivity. If A happens‐before B, and B happens‐before C, then A happens‐before C.
+>    (事实上这一条是 total order 的性质决定的)
+>
+> --- By <Java Concurrency in Practice>
 
 
 ## Java 内存模型提供的的基本同步工具
@@ -263,21 +291,21 @@ volatile 的性质:
   注意, 必须是同一个 volatile 变量 (前文中都是 'f'), 不同的 volatile 变量是没有这样的保证的.
 
 关于第二点, 继续参考 HB 部分的例子. 我们可以认为, 在线程1中, 语句执行效果等价于顺序执行的效果;
-`this.flag = true` 被执行时, 前一个语句 `this.important_data = 15` 已经被执行了; 
-而且 `this.flag = true` 能看到前一个语句执行的结果.
+`flag = true` 被执行时, 前一个语句 `important_data = 15` 已经被执行了; 
+而且 `flag = true` 能看到前一个语句执行的结果.
 
-现在, 由于 `this.flag` 使用了 `volatile` 同步机制, 所以线程2也像线程1一样, 
-看到 `this.flag = true` 的结果时, 一定能看到之前的语句 `this.important_data = 15` 的结果.
+现在, 由于 `flag` 使用了 `volatile` 同步机制, 所以线程2也像线程1一样, 
+看到 `flag = true` 的结果时, 一定能看到之前的语句 `important_data = 15` 的结果.
 (准确地说, 实际上 `volatile` 保证的是 "Java 保证线程2运行的效果等价于
- 满足 '线程2能先看到 `this.important_data = 15` 的结果, 再看到 `this.flag = true` 的结果' 的情况下
+ 满足 '线程2能先看到 `important_data = 15` 的结果, 再看到 `flag = true` 的结果' 的情况下
  程序的运行结果";
- 只要求结果等价, 不要求严格地照搬规则执行; 不把话说死, 从而就没有把优化的空间封死.
+ **只要求结果等价**, 不要求严格地照搬规则执行; 不把话说死, 从而就没有把优化的空间封死.
  如果在 `volatile` 前面的语句运行的结果 "完全无关紧要(不影响结果, totally irrelevant)", 
  那么实际的实现可以根本不真正去做
- '让线程2能先看到 `this.important_data = 15` 的结果,  再看到 `this.flag = true`' 这一点)
+ '让线程2能先看到 `important_data = 15` 的结果,  再看到 `flag = true`' 这件事)
 
 ### `final`
-`final` 解决的问题: 早期的 JMM 中, final 的语义约束并没有现在这么强,
+`final` 解决的问题: 早期的 JMM 中 (1.5 版本之前), final 的语义约束并没有现在这么强,
 有时从其他线程观察, `final` 成员的值会发生变化, 与程序员的期望不一致. 
 就是说, "发布 (publish, 即 make visible) 对象的引用" 的指令被重排序, 提前被执行,
 而构造函数还没有被执行完, 其他线程看到了 final 成员的 default initial value 或其他中间状态.
@@ -297,12 +325,31 @@ volatile 的性质:
 + 构造函数 "没有逸出" 的充要条件:  do not write a reference to the object being
 constructed in a place where another thread can see it before the object's constructor
 is finished. (来自 java 语言标准, jls9)
+(更多可参考 "可见性, 发布和逸出, 发布对象引用.md")
 + "正确地/正确性" = "up to date as of the end of the object's constructor", not "the latest value available". 
++ final 的性质被成为 "Initialization safety" (初始化安全性)
 
-(我认为 `final` 的效果也可以用类似定义 `volatile` 一样的方式定义, 
- 都是令 "inter-thread 的 visibility 和顺序性" 做到了原本 
- "intra-thread 才拥有的 visibility + as-if-serial" 的效果, 符合程序员的期望)
- 
+`final` 与 `volatile` 比较的例子:
+```java
+public class SafeStates {
+    public final Map<String, String> states;
+    
+    public SafeStates() {
+        states = new HashMap<String, String>();
+        states.put("alaska", "AK");
+        states.put("alabama", "AL");
+        states.put("wyoming", "WY");
+    }
+    public String getAbbreviation(String s) {
+        return states.get(s);
+    }
+}
+```
+这段代码中, 将 `volatile` 改为 `final` 将会破坏 "初始化安全性".
+`volatile` 的性质描述中是完全不涉及 "构造函数" 的; 
+如此, 某个现成看到 SafeStates 类型对象的引用时, states 成员 **未必** 被初始化完毕;
+读取 states 可能读取到 null, 或者读到部分初始化的状态. 
+
 ### 内部锁, intrinsic/monitor lock, `synchronized`
 intrinsic lock === monitor lock, 又被简称为 monitor. 
 `synchronized` 用到的机制就是 monitor.
@@ -323,7 +370,7 @@ synchronized block: 被 `synchronized` 保护的代码区域.
 + A thread is said to **own the intrinsic lock** between the time it has 
   acquired the lock and released the lock. As long as a thread owns an intrinsic lock, 
   no other thread can acquire the same lock. 
-  The other thread will **block** when it attempts to acquire the lock.
+  The other thread will **block** when it attempts to acquire the lock. 
   (互斥 (mutex) 能力)
 + 参考 'Java 内存模型保证成立的 "HB 关系"' 部分的第一条和第二条; 由于存在这样的 HB 关系, 
   Java MM 实际上保证了: 
@@ -344,7 +391,7 @@ C# 是通过详细地定义 release 和 acquire 操作而不是通过 HB rule �
 ```java
 class Foo { 
     private Helper helper = null;
-
+    
     public Helper getHelper() {
         if (helper == null) { 
             synchronized(this) {
@@ -369,6 +416,19 @@ class Foo {
 详细讨论见 [The "Double-Checked Locking is Broken" Declaration]( http://www.cs.umd.edu/~pugh/java/memoryModel/DoubleCheckedLocking.html );
 里面更详细地讨论了种种看似聪明但不 work 的 "fix 方案".
 
+Java 语言的延迟初始化的推荐写法:
+```java
+class Foo {
+    private static class HelperHolder {
+        public static Helper helper = new Helper();
+    }
+
+    public Helper getHelper() {
+        return HelperHolder.helper;
+    }
+} 
+```
+
 
 ## 什么同步都不做? 最低安全性 (out-of-thin-air safety) 
 当线程在没有同步机制的情况下读取变量, 可能会得到一个 '失效的' (stale) 值; 
@@ -380,6 +440,25 @@ class Foo {
 Java 的 "最低安全性" 事实上已经是是相当强的保证了; C/C++ 没有类似的保证, 
 读取到 undefined 的值完全是正常的, 符合语言标准的.
 
+
+## "piggybacking" (捎带); 利用库提供的同步能力 (happens-before 性质) 实现需要的 visibility 性质
+概念: 参考前文的 [Java 内存模型保证成立的 "HB 关系"], 利用已有的工具 (`volatile` 等) 已有的 
+happens-before 性质, 加上 "Program order rule", 保证代码有满足需要的 visibility 性质. 
+
+通常来说, 这是为了榨干性能而使用的技术, 不应该随便使用; 
+大部分非关键路径的代码用了这个办法反而使得代码晦涩难懂, 毫无意义.
+
+可以利用的库以及它们拥有的 happens-before 性质 (from <Java Concurrency in Practice>):
++ 线程安全容器: Placing an item in a thread‐safe collection happens‐before another thread retrieves that item from the
+collection;
++ `CountDownLatch`: Counting down on a CountDownLatch happens‐before a thread returns from await on that latch;
++ `Semaphore`: Releasing a permit to a Semaphore happens‐before acquiring a permit from that same Semaphore;
++ `Future`: Actions taken by the task represented by a Future happens‐before another thread successfully returns from Future.get;
++ `Runnable`: Submitting a Runnable or Callable to an Executor happens‐before the task begins execution;
++ `CyclicBarrier` or `Exchanger`: A thread arriving at a CyclicBarrier or Exchanger happens‐before 
+  the other threads are released from that same barrier or exchange point. 
+  If CyclicBarrier uses a barrier action, arriving at the barrier happens‐before
+  the barrier action, which in turn happens‐before threads are released from the barrier.
 
 
 
