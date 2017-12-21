@@ -17,7 +17,6 @@ tags:
 ---
 
 
-
 ## 前言, 参考文献
 这篇东西的目的是: 做一次比较完整的严谨的调查和总结. 
 我自己这方面知识是不少的, 但不系统.
@@ -259,7 +258,7 @@ then hb(x, y)."
   还有, program order 未必是唯一的, program order 只要 "**reflects** the order in which these actions 
   would be performed according to the **intra-thread** semantics." 就可以了;
   program order 是灵活的, 允许重排序的.
-  这一条在 <Java Concurrency in Practice> 中被成为 "Program order rule".
+  这一条在 "Java Concurrency in Practice" 中被成为 "Program order rule".
 + 关于 2-3: 描述了 `lock/unlock` 和 `volatile` 的一部分性质; 它们完整的性质将在下文描述
 + 关于 4-5: 符合程序员对于线程行为的基本期望 
 
@@ -448,7 +447,7 @@ happens-before 性质, 加上 "Program order rule", 保证代码有满足需要�
 通常来说, 这是为了榨干性能而使用的技术, 不应该随便使用; 
 大部分非关键路径的代码用了这个办法反而使得代码晦涩难懂, 毫无意义.
 
-可以利用的库以及它们拥有的 happens-before 性质 (from <Java Concurrency in Practice>):
+可以利用的库以及它们拥有的 happens-before 性质 (见 "Java Concurrency in Practice"):
 + 线程安全容器: Placing an item in a thread‐safe collection happens‐before another thread retrieves that item from the
 collection;
 + `CountDownLatch`: Counting down on a CountDownLatch happens‐before a thread returns from await on that latch;
@@ -459,6 +458,9 @@ collection;
   the other threads are released from that same barrier or exchange point. 
   If CyclicBarrier uses a barrier action, arriving at the barrier happens‐before
   the barrier action, which in turn happens‐before threads are released from the barrier.
+
+
+
 
 
 
