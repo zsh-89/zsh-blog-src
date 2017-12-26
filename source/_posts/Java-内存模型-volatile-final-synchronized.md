@@ -164,7 +164,9 @@ as-if-serial 可以认为是 Java MM 提供的 "低保".
 仅看线程1, "编译器调换 A B 执行顺序" 完全符合 as-if-serial 语义; 
 但一旦考虑线程2的逻辑, "调换 A B 执行顺序" 就完全破坏了我们对代码行为的期望.
 
-### 数据竞争 data race (和 race condition 不同, 虽然有联系); sequential consistency 顺序一致性
+### 数据竞争 data race; sequential consistency 顺序一致性; correctly synchronized 正确同步 
+数据竞争 data race 和 race condition 不同, 虽然有联系.
+
 Java 标准文档中对 data race 的定义: 
 When a program contains two **conflicting accesses** 
 (if at least one of the accesses is a write) that are not ordered by 
@@ -174,13 +176,17 @@ a happens-before relationship, it is said to contain a data race.
 + 一个进程中, 2个或2个以上的线程同时访问同一块内存空间, 
 + 至少一个线程执行写操作 (即存在 **冲突操作**),
 + 这些冲突操作 (没有通过编程语言的机制建立) HB 约束关系.
-  (白话版: 这些冲突的读/写操作没有正确地通过同步机制建立顺序关系 
-   (白话版的英文: are not **ordered** by synchronization))
+  (毫无信息量的白话版: 这些冲突的读/写操作没有正确地通过同步机制建立顺序关系; 
+   为什么毫无信息量: "正确同步" 就是用 data race 和 '顺序一致性' 定义的.
+   (白话版的英文: are not **ordered** by synchronization; not correctly synchronized))
 
 freedom from data race 是相当强的约束, 由于冲突操作间都有 HB 关系, 意味着:
 对同一块内存, 每一个读操作都一定能读到前一个写操作的结果 (写可以来自包括其他线程的任意线程).
 
 sequential consistency 等价于 freedom from data race (data race free), 是同义词汇.
+
+**correctly synchronized**: All execution of the program will appear to be sequential consistent 
+(freedom from data race).
 
 ### 顺序一致性 sequential consistency / freedom from data race; 保证程序 predictable 的性质
 (几乎全引用自标准本身, 晦涩; 参考 `volatile` 的例子才能解读)
@@ -200,7 +206,31 @@ according to the **intra-thread** semantics.
 对同一块内存, 每一个读操作都一定能读到前一个 (时间上最近的前一个) 写操作的结果 
 (写可以来自包括其他线程的任意线程).
 
+标准对 sequential consistency 评价 "很强": 
+Sequential consistency is a very strong guarantee that is made about visibility and
+ordering in an execution of a program. Within a sequentially consistent execution,
+there is a total order over all individual actions (such as reads and writes) which is
+consistent with the order of the program, and each individual action is atomic and
+is immediately visible to every thread.
+
 sequential consistency 等价于 freedom from data race (data race free), 是同义词汇.
+
+关于 all **inter-thread actions** occur in a total order, 即 "所有线程看到的 action 的顺序是同一个";
+辅助理解的例子:
+```java
+// Thread 1
+x = 1;
+
+// Thread 2
+y = 1;
+
+// Thread 3
+if (x == 1 && y == 0) { print("x first"); } 
+
+// Thread 4
+if (y == 1 && x == 0) { print("y first"); } 
+```
+顺序一致性保证: 要么只输出 "x first", 要么只输出 "x first", 要么两者都不输出, 永远不出现两者都输出的情况;
 
 sequential consistency 是相当强的约束; 编写多线程程序的程序员会喜欢它, 
 但是并不能直接拿它作为一个程序语言的 MM, 因为它限制过多, 阻碍了编译器优化和CPU并发技术. 
@@ -281,10 +311,15 @@ then hb(x, y)."
 
 
 ## Java 内存模型提供的的基本同步工具
-### `volatile` 
+### `volatile`
+Java 的 `volatile` 实现了对于一个变量的 '顺序一致性'.
+
 volatile 的性质:
 + 保证被 `volatile` 修饰的变量的跨线程可见性 (visibility): 
   所有线程都一定能看到 volatile 共享变量上一次 (最近一次) 被写入的值
+  (标准通过 synchronization order (保证存在跨线程的与 program order 一致的 total order) 定义该性质; 
+   A write to a volatile var v synchronizes-with all subsequent reads of v by any thread 
+   (where 'subsequent' is defined according to the synchronization order))
 + Anything that was visible to thread A when it writes to volatile field f 
   becomes visible to thread B when it reads f.
   注意, 必须是同一个 volatile 变量 (前文中都是 'f'), 不同的 volatile 变量是没有这样的保证的.
@@ -302,6 +337,22 @@ volatile 的性质:
  如果在 `volatile` 前面的语句运行的结果 "完全无关紧要(不影响结果, totally irrelevant)", 
  那么实际的实现可以根本不真正去做
  '让线程2能先看到 `important_data = 15` 的结果,  再看到 `flag = true`' 这件事)
+
+用 HB 的传递性来帮助理解 "any thing that is visible when XXX action happens";
+```java
+// 假设所有变量都是 volatile 
+
+// Thread 1
+g=1; x=1;
+
+// Thread 2
+if (x == 1) y = 1;
+
+// Thread 3
+if (y == 1) assert(g == 1);  
+// g=1操作在 Thread 1 发生, 它的可见性通过 happens before 传递了2个线程
+```
+(参见前小节中 Java 保证成立的 HB 约束中的 "Volatile variable rule")
 
 ### `final`
 `final` 解决的问题: 早期的 JMM 中 (1.5 版本之前), final 的语义约束并没有现在这么强,
@@ -458,8 +509,6 @@ collection;
   the other threads are released from that same barrier or exchange point. 
   If CyclicBarrier uses a barrier action, arriving at the barrier happens‐before
   the barrier action, which in turn happens‐before threads are released from the barrier.
-
-
 
 
 
