@@ -401,14 +401,14 @@ valine:
 # Introduction: https://imsun.net/posts/gitment-introduction/
 # You can get your Github ID from https://api.github.com/users/<Github username>
 gitment:
-  enable: true
+  enable: false
   mint: true # RECOMMEND, A mint on Gitment, to support count, language and proxy_gateway
   count: true # Show comments count in post meta area
   lazy: true # Comments lazy loading with a button
   cleanly: false # Hide 'Powered by ...' on footer, and more
   language: # Force language, or auto switch by theme
   github_user: zsh-89 # MUST HAVE, Your Github ID
-  github_repo: https://github.com/zsh-89/zsh-89.github.io # MUST HAVE, The repo you use to store Gitment comments
+  github_repo: zsh-89.github.io # MUST HAVE, The repo you use to store Gitment comments
   client_id: e7c70a8480970090e240 # MUST HAVE, Github client id for the Gitment
   client_secret: 8bc22d078b059d2ed65e49e4c97be6d2330de8b2 # EITHER this or proxy_gateway, Github access secret token for the Gitment
   proxy_gateway: # Address of api proxy, See: https://github.com/aimingoo/intersect
