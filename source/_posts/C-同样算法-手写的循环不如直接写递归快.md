@@ -45,17 +45,17 @@ struct Frame2 {
 class Solution {
 public:
     int findTargetSumWaysQ(vector<int>& nums, int target)
-	{
+    {
         int N = nums.size();
         if (!N) return 0;
         
-		int total = 0;
-		// vector<Frame2> stk(nums.size()+1);
-		Frame2* stk = (Frame2*)malloc((N+1)*sizeof(Frame2));
+        int total = 0;
+        // vector<Frame2> stk(nums.size()+1);
+        Frame2* stk = (Frame2*)malloc((N+1)*sizeof(Frame2));
         stk[0].sum = 0;  stk[0].level = 0;
 
         int stk_ptr = 0;
-		while (stk_ptr>=0) {
+        while (stk_ptr>=0) {
             int pre_sum = stk[stk_ptr].sum;
             int level = stk[stk_ptr].level;
 
@@ -74,10 +74,10 @@ public:
             stk[stk_ptr+1].level = 1+level;
 
             stk_ptr += 1;
-		}
+        }
         free(stk);
-		return total;
-	}
+        return total;
+    }
 
     int findTargetSumWaysR(vector<int>& nums, int target) {
         return findTargetSumWaysRecursiveImpl(nums, 0, 0, target);
@@ -241,6 +241,7 @@ sys	0m0.000s
 通过命令 `g++ -S -o recur3.s  -O3 cpp_src/main.cpp  -std=c++11 ` 观察 `g++` 编译出的 `Solution::findTargetSumWaysRecursiveImpl` 函数的汇编代码 (附于本文最后), 
 得出结论: `g++` **对递归函数做了展开(Recursion flattening), 略微牺牲了二进制文件的大小, 减少了条件跳转, 换取了性能.**
 
+这个案例有趣之处在于, `g++` 对于 **non-tail recursion** 也能进行展开 (flattening), 并能做到超过手工的优化.
 参考阅读: http://32leav.es/?p=674
 
 
